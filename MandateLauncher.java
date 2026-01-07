@@ -9,8 +9,10 @@ import java.nio.file.StandardCopyOption;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Security;
+import java.security.cert.X509Certificate;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -23,8 +25,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openpgp.PGPAlgorithmParameters;
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPKeyConverter;
+import org.bouncycastle.bcpg.PublicKeyAlgorithmTags;
 
 import com.tcs.sbi.constants.ErrorConstants;
 import com.tcs.sbi.constants.MandateConstants;
@@ -68,7 +72,108 @@ public class MandateLauncher {
 	private static String sbiSrNo;
 	private static String Key, IV;
 	private static String dbUser, dbPwd, dbUrl;
+	private static String pubKey;
+	private static X509Certificate privCert;
+	private static X509Certificate pubCert;
+	private static String Encodedpubcert;
 	
+	private static String sftpHost;
+	private static String sftpUsername;
+	private static String sftpPwd;
+	private static String sftpPort;
+	private static String remoteDir;
+	private static String archiveDir;
+	private static String localDir;
+	private static String serverPrivateKeypath;
+
+	
+	public static X509Certificate getPrivCert() {
+		return privCert;
+	}
+
+	public static void setPrivCert(X509Certificate privCert) {
+		MandateLauncher.privCert = privCert;
+	}
+
+	public static X509Certificate getPubCert() {
+		return pubCert;
+	}
+
+	public static void setPubCert(X509Certificate pubCert) {
+		MandateLauncher.pubCert = pubCert;
+	}
+
+	public static String getEncodedpubcert() {
+		return Encodedpubcert;
+	}
+
+	public static void setEncodedpubcert(String encodedpubcert) {
+		Encodedpubcert = encodedpubcert;
+	}
+
+	public static String getServerPrivateKeypath() {
+		return serverPrivateKeypath;
+	}
+
+	public static void setServerPrivateKeypath(String serverPrivateKeypath) {
+		MandateLauncher.serverPrivateKeypath = serverPrivateKeypath;
+	}
+
+	public static String getSftpHost() {
+		return sftpHost;
+	}
+
+	public static void setSftpHost(String sftpHost) {
+		MandateLauncher.sftpHost = sftpHost;
+	}
+
+	public static String getSftpUsername() {
+		return sftpUsername;
+	}
+
+	public static void setSftpUsername(String sftpUsername) {
+		MandateLauncher.sftpUsername = sftpUsername;
+	}
+
+	public static String getSftpPwd() {
+		return sftpPwd;
+	}
+
+	public static void setSftpPwd(String sftpPwd) {
+		MandateLauncher.sftpPwd = sftpPwd;
+	}
+
+	public static String getSftpPort() {
+		return sftpPort;
+	}
+
+	public static void setSftpPort(String sftpPort) {
+		MandateLauncher.sftpPort = sftpPort;
+	}
+
+	public static String getRemoteDir() {
+		return remoteDir;
+	}
+
+	public static void setRemoteDir(String remoteDir) {
+		MandateLauncher.remoteDir = remoteDir;
+	}
+
+	public static String getArchiveDir() {
+		return archiveDir;
+	}
+
+	public static void setArchiveDir(String archiveDir) {
+		MandateLauncher.archiveDir = archiveDir;
+	}
+
+	public static String getLocalDir() {
+		return localDir;
+	}
+
+	public static void setLocalDir(String localDir) {
+		MandateLauncher.localDir = localDir;
+	}
 
 	public static String getPassword() {
 		return password;
@@ -253,56 +358,7 @@ public class MandateLauncher {
 	public static void setFailedFilesPath(String failedFilesPath) {
 		MandateLauncher.failedFilesPath = failedFilesPath;
 	}
-
-	static {
-		try {
-			loggerPath = MandateEncProperties.getInstance().getProperty(MandateConstants.LOGGER_FILEPATH.toString());
-			Configurator.initialize(null, loggerPath + MandateConstants.LOGGER_FILENAME.toString() + ".properties");
-			srcPath = MandateEncProperties.getInstance().getProperty("SOURCE_PATH");
-			destPath = MandateEncProperties.getInstance().getProperty("DESTINATION_PATH");
-			zippedPath = MandateEncProperties.getInstance().getProperty("ZIPPED_PATH");
-			signedPath = MandateEncProperties.getInstance().getProperty("SIGNED_PATH");
-			failedFilesPath = MandateEncProperties.getInstance().getProperty("FAILED_FILES_PATH");
-			backUpPath = MandateEncProperties.getInstance().getProperty("BACKUP_PATH");
-			zippingFailedPath = MandateEncProperties.getInstance().getProperty("ZIPPING_FAILED_PATH");
-			signingFailedPath = MandateEncProperties.getInstance().getProperty("SIGNING_FAILED_PATH");
-			encryptingFailedPath = MandateEncProperties.getInstance().getProperty("ENCRYPTING_FAILED_PATH");
-			threadSleepTimeString = MandateEncProperties.getInstance().getProperty("THREAD_SLEEP_TIME");
-			fileProcessLimitString = MandateEncProperties.getInstance().getProperty("FILE_PROCESS_LIMIT");
-			fileProcessLimit = Integer.parseInt(fileProcessLimitString);
-			publicKeyPath = MandateEncProperties.getInstance().getProperty("PUBLIC_KEY_PATH");
-			privateKeyPath = MandateEncProperties.getInstance().getProperty("PRIVATE_KEY_PATH");
-			toProcessPath = MandateEncProperties.getInstance().getProperty("TO_PROCESS_PATH");
-			nameStart = MandateEncProperties.getInstance().getProperty("NAME_STARTS_WITH");
-			nameEnd = MandateEncProperties.getInstance().getProperty("NAME_ENDS_WITH");
-			minFileNameLengthString = MandateEncProperties.getInstance().getProperty("MIN_FILE_NAME_LENGTH");
-			minFileNameLength = Integer.parseInt(minFileNameLengthString);
-			maxFileNameLengthString = MandateEncProperties.getInstance().getProperty("MAX_FILE_NAME_LENGTH");
-			maxFileNameLength = Integer.parseInt(maxFileNameLengthString);
-			noOfDays = MandateEncProperties.getInstance().getProperty("NO_OF_DAYS");
-			sbiSrNo = MandateEncProperties.getInstance().getProperty("USER_ID");
-			password = MandateEncProperties.getInstance().getProperty("PASSWORD");
-			dbPwd = MandateEncProperties.getInstance().getProperty("dbpwd");
-			dbUrl = MandateEncProperties.getInstance().getProperty("dburl");
-			dbUser = MandateEncProperties.getInstance().getProperty("dbuser");
-			Key = MandateEncProperties.getInstance().getProperty("Key");
-			IV = MandateEncProperties.getInstance().getProperty("IV");
-
-			threadSleepTime = Integer.parseInt(threadSleepTimeString);
-			tailName = MandateEncProperties.getInstance().getProperty("TAIL_NAME");
-			Security.addProvider(new BouncyCastleProvider());
-			privateKey = MandateUtility.getCertKeys(privateKeyPath, password);
-			publicKey = MandateUtility.getPubkeyfrompath(publicKeyPath);
-			pgpPublicKey = (new JcaPGPKeyConverter().getPGPPublicKey(PGPPublicKey.RSA_GENERAL, publicKey,
-					new java.util.Date()));
-		}
-		catch (IOException ex) {
-			log.error("Error while accessing properties file " + ex);
-		} catch (Exception e) {
-			log.error("Error while fetching data for variables "+ e.getMessage());
-		}
-	}
-
+	
 	public static String getEncryptedPath() {
 		return encryptedPath;
 	}
@@ -419,11 +475,72 @@ public class MandateLauncher {
 		return log;
 	}
 
+	static {
+		try {
+			loggerPath = MandateEncProperties.getInstance().getProperty(MandateConstants.LOGGER_FILEPATH.toString());
+			Configurator.initialize(null, loggerPath + MandateConstants.LOGGER_FILENAME.toString() + ".properties");
+			srcPath = MandateEncProperties.getInstance().getProperty("SOURCE_PATH");
+			destPath = MandateEncProperties.getInstance().getProperty("DESTINATION_PATH");
+			zippedPath = MandateEncProperties.getInstance().getProperty("ZIPPED_PATH");
+			signedPath = MandateEncProperties.getInstance().getProperty("SIGNED_PATH");
+			failedFilesPath = MandateEncProperties.getInstance().getProperty("FAILED_FILES_PATH");
+			backUpPath = MandateEncProperties.getInstance().getProperty("BACKUP_PATH");
+			zippingFailedPath = MandateEncProperties.getInstance().getProperty("ZIPPING_FAILED_PATH");
+			signingFailedPath = MandateEncProperties.getInstance().getProperty("SIGNING_FAILED_PATH");
+			encryptingFailedPath = MandateEncProperties.getInstance().getProperty("ENCRYPTING_FAILED_PATH");
+			threadSleepTimeString = MandateEncProperties.getInstance().getProperty("THREAD_SLEEP_TIME");
+			fileProcessLimitString = MandateEncProperties.getInstance().getProperty("FILE_PROCESS_LIMIT");
+			fileProcessLimit = Integer.parseInt(fileProcessLimitString);
+			publicKeyPath = MandateEncProperties.getInstance().getProperty("PUBLIC_KEY_PATH");
+			privateKeyPath = MandateEncProperties.getInstance().getProperty("PRIVATE_KEY_PATH");
+			toProcessPath = MandateEncProperties.getInstance().getProperty("TO_PROCESS_PATH");
+			nameStart = MandateEncProperties.getInstance().getProperty("NAME_STARTS_WITH");
+			nameEnd = MandateEncProperties.getInstance().getProperty("NAME_ENDS_WITH");
+			minFileNameLengthString = MandateEncProperties.getInstance().getProperty("MIN_FILE_NAME_LENGTH");
+			minFileNameLength = Integer.parseInt(minFileNameLengthString);
+			maxFileNameLengthString = MandateEncProperties.getInstance().getProperty("MAX_FILE_NAME_LENGTH");
+			maxFileNameLength = Integer.parseInt(maxFileNameLengthString);
+			noOfDays = MandateEncProperties.getInstance().getProperty("NO_OF_DAYS");
+			sbiSrNo = MandateEncProperties.getInstance().getProperty("USER_ID");
+			password = MandateEncProperties.getInstance().getProperty("PASSWORD");
+			dbPwd = MandateEncProperties.getInstance().getProperty("dbpwd");
+			dbUrl = MandateEncProperties.getInstance().getProperty("dburl");
+			dbUser = MandateEncProperties.getInstance().getProperty("dbuser");
+			Key = MandateEncProperties.getInstance().getProperty("Key");
+			IV = MandateEncProperties.getInstance().getProperty("IV");
+			
+			sftpHost = MandateEncProperties.getInstance().getProperty("SFTP_HOST");
+			sftpUsername = MandateEncProperties.getInstance().getProperty("SFTP_USERNAME");
+			sftpPort = MandateEncProperties.getInstance().getProperty("SFTP_PORT");
+			sftpPwd = MandateEncProperties.getInstance().getProperty("SFTP_PASSWORD");
+			remoteDir = MandateEncProperties.getInstance().getProperty("REMOTE_DIR");
+			localDir = MandateEncProperties.getInstance().getProperty("LOCAL_DIR");
+			archiveDir = MandateEncProperties.getInstance().getProperty("ARCHIVE_DIR");
+//			serverPrivateKeypath = MandateEncProperties.getInstance().getProperty("SERVER_PRIVATE_KEY_PATH");
+
+			threadSleepTime = Integer.parseInt(threadSleepTimeString);
+			tailName = MandateEncProperties.getInstance().getProperty("TAIL_NAME");
+			Security.addProvider(new BouncyCastleProvider());
+			privateKey = MandateUtility.getCertKeys(privateKeyPath, password);
+			pubKey = MandateEncProperties.getInstance().getProperty("PUBLIC_CERT_PATH");
+			pubCert = MandateUtility.loadX509Certificate(pubKey);
+			privCert = MandateUtility.x509certget(privateKeyPath,password);
+			Encodedpubcert = MandateUtility.base64Certificate(MandateLauncher.getPubCert());
+			publicKey = MandateUtility.getPubkeyfrompath(publicKeyPath);
+			pgpPublicKey = (new JcaPGPKeyConverter().getPGPPublicKey(PGPPublicKey.RSA_GENERAL, publicKey,new java.util.Date()));
+		} catch (IOException ex) {
+			log.error("Error while accessing properties file " + ex);
+		} catch (Exception e) {
+			log.error("Error while fetching data for variables " + e.getMessage());
+		}
+	}
+
+	
+
 	public static void main(String[] args) {
 
 		while (true) {
 			HashMap<String, Object> encdmap = new HashMap<String, Object>();
-			String referenceNumber = "";
 			log.info(
 					"********************************  || AADESH_MANDATE_ENC UTILITY STARTED ||  ***********************************\n");
 
@@ -434,21 +551,21 @@ public class MandateLauncher {
 				Calendar cal = Calendar.getInstance();
 				int dTm = Integer.parseInt(MandateLauncher.getNoOfDays());
 				cal.add(Calendar.DATE, -dTm);
-				
+
 				int prevCalMonth = cal.get(Calendar.MONTH) + 1;
 				int prevCalYear = cal.get(Calendar.YEAR);
 				int prevCalDate = cal.get(Calendar.DATE);
-				
+
 				cal.add(Calendar.DATE, dTm);
 				int currCalMonth = cal.get(Calendar.MONTH) + 1;
 				int currCalYear = cal.get(Calendar.YEAR);
 				int currCalDate = cal.get(Calendar.DATE);
-				
+
 				LocalDate startDate = LocalDate.of(prevCalYear, prevCalMonth, prevCalDate);
 				LocalDate endDate = LocalDate.of(currCalYear, currCalMonth, currCalDate);
 
 				File sourceFolder = new File(srcPath);
-				File[] listOfFolders = sourceFolder.listFiles(File::isDirectory);
+				File[] listOfFolders = sourceFolder.listFiles(File::isDirectory); //create,cancel,amend
 				Integer totalnoofRecords;
 
 				for (File folder : listOfFolders) {
@@ -468,74 +585,79 @@ public class MandateLauncher {
 							for (File file : files) {
 								String[] parts = file.getName().split("-");
 								String dateStr = parts[5];
-								String finalName="";
-								if(parts.length==8) {
-									finalName = parts[0] + "-" + parts[1] + "-" + parts[2] + "-" + parts[4].substring(0,4) + MandateLauncher.getSbiSrNo() + "-" + currDate + "-" + parts[6] + "-" + parts[7];
+								String finalName = "";
+								if (parts.length == 8) { //OTH removed and added SBISrNo after sbin
+									finalName = parts[0] + "-" + parts[1] + "-" + parts[2] + "-"
+											+ parts[4].substring(0, 4) + MandateLauncher.getSbiSrNo() + "-" + currDate
+											+ "-" + parts[6] + "-" + parts[7];
 								}
 								encdmap.put("FileName", file.getName());
-								if(file.getName().contains("OTH")) {
+								if (file.getName().contains("OTH")) {
 									Zone = "OTH";
 									encdmap.put("Zone", "OTH");
-								} else if(file.getName().contains("SOU")) {
+								} else if (file.getName().contains("SOU")) {
 									encdmap.put("Zone", "SOU");
 									Zone = "SOU";
-								} else if(file.getName().contains("NOR")) {
+								} else if (file.getName().contains("NOR")) {
 									encdmap.put("Zone", "NOR");
 									Zone = "NOR";
 								}
 								DateTimeFormatter formatter = DateTimeFormatter.ofPattern("ddMMyyyy");
 								boolean flag = false;
 								try {
-									isPreviouslyProcessed = Manager.isFilepreviouslyProcessed(file.getName(),new Date());
-									if(!isPreviouslyProcessed) {
-										if (file.getName().length() > minFileNameLength && file.getName().length() < maxFileNameLength) {
+									isPreviouslyProcessed = Manager.isFilepreviouslyProcessed(file.getName(),
+											new Date());
+									if (!isPreviouslyProcessed) {
+										if (file.getName().length() > minFileNameLength
+												&& file.getName().length() < maxFileNameLength) {
 											LocalDate fileDate = LocalDate.parse(dateStr, formatter);
-											if ((fileDate.isEqual(startDate) || fileDate.isAfter(startDate)) && (fileDate.isEqual(endDate) || fileDate.isBefore(endDate))) {
+											if ((fileDate.isEqual(startDate) || fileDate.isAfter(startDate))
+													&& (fileDate.isEqual(endDate) || fileDate.isBefore(endDate))) {
 												if (file.getName().contains(nameStart)
 														&& file.getName().contains(nameEnd)) {
 													flag = true;
 												} else {
 													encdmap.put("ERROR_CODE", ErrorConstants.ERR01.name());
 													encdmap.put("lastUpdatedtime", MandateUtility.getTimestamp());
-													log.info("FileName validation failed, Moving to Name validation failed path");
+													log.info(
+															"FileName validation failed, Moving to Name validation failed path");
 													Files.move(file.toPath(),
 															Paths.get(failedFilesPath + File.separator
-																	+ "NameValidationFailed" + File.separator + folderName
-																	+ File.separator + file.getName()),
+																	+ "NameValidationFailed" + File.separator
+																	+ folderName + File.separator + file.getName()),
 															StandardCopyOption.REPLACE_EXISTING);
 													dbupdate = Manager.insertintoMandate_file_logs(encdmap, new Date());
 													if (dbupdate == true) {
-														log.info("Status updated in DB for File : "
-																+ file.getName());
+														log.info("Status updated in DB for File : " + file.getName());
 													} else {
-														log.info("Unable to updated in DB for File : "
-																+ file.getName());
+														log.info(
+																"Unable to updated in DB for File : " + file.getName());
 													}
 												}
 											} else {
 												encdmap.put("ERROR_CODE", ErrorConstants.ERR03.name());
 												encdmap.put("lastUpdatedtime", MandateUtility.getTimestamp());
-												log.info("Date validation failed, Moving to date validation failed path ");
+												log.info(
+														"Date validation failed, Moving to date validation failed path ");
 												Files.move(file.toPath(),
-														Paths.get(failedFilesPath + File.separator + "DateValidationFailed"
-																+ File.separator + folderName + File.separator
-																+ file.getName()),
+														Paths.get(failedFilesPath + File.separator
+																+ "DateValidationFailed" + File.separator + folderName
+																+ File.separator + file.getName()),
 														StandardCopyOption.REPLACE_EXISTING);
 												dbupdate = Manager.insertintoMandate_file_logs(encdmap, new Date());
 												if (dbupdate == true) {
-													log.info("Status updated in DB for File : "
-															+ file.getName());
+													log.info("Status updated in DB for File : " + file.getName());
 												} else {
-													log.info("Unable to updated in DB for File : "
-															+ file.getName());
+													log.info("Unable to updated in DB for File : " + file.getName());
 												}
 											}
 										} else {
 											encdmap.put("ERROR_CODE", ErrorConstants.ERR01.name());
 											encdmap.put("lastUpdatedtime", MandateUtility.getTimestamp());
-											
+
 //											log.infoln("File Name length validation failed");
-											log.info("File name length validation failed, Moving to name length validation failed path");
+											log.info(
+													"File name length validation failed, Moving to name length validation failed path");
 											Files.move(file.toPath(),
 													Paths.get(failedFilesPath + File.separator
 															+ "NameLengthValidationFailed" + File.separator + folderName
@@ -543,11 +665,9 @@ public class MandateLauncher {
 													StandardCopyOption.REPLACE_EXISTING);
 											dbupdate = Manager.insertintoMandate_file_logs(encdmap, new Date());
 											if (dbupdate == true) {
-												log.info("Status updated in DB for File : "
-														+ file.getName());
+												log.info("Status updated in DB for File : " + file.getName());
 											} else {
-												log.info("Unable to updated in DB for File : "
-														+ file.getName());
+												log.info("Unable to updated in DB for File : " + file.getName());
 											}
 										}
 									} else {
@@ -555,19 +675,20 @@ public class MandateLauncher {
 										encdmap.put("lastUpdatedtime", MandateUtility.getTimestamp());
 										log.info("File is already processed , Moving to name validation failed path");
 										Files.move(file.toPath(),
-												Paths.get(failedFilesPath + File.separator
-														+ "NameValidationFailed" + File.separator + folderName
-														+ File.separator + file.getName()),
+												Paths.get(failedFilesPath + File.separator + "NameValidationFailed"
+														+ File.separator + folderName + File.separator
+														+ file.getName()),
 												StandardCopyOption.REPLACE_EXISTING);
 										dbupdate = Manager.insertintoMandate_file_logs(encdmap, new Date());
 										if (dbupdate == true) {
-											log.info("Status updated in DB for File : "
-													+ file.getName());
+											log.info("Status updated in DB for File : " + file.getName());
 										} else {
-											log.info("Unable to updated in DB for File : "
-													+ file.getName());
+											log.info("Unable to updated in DB for File : " + file.getName());
 										}
 									}
+								} catch (DateTimeParseException dtpe) {
+									log.error("Date parsing failed, moving to date validation failed path "
+											+ dtpe.getMessage());
 								} catch (IOException ex) {
 									log.error("IO Exception occured " + ex);
 								} catch (Exception e) {
@@ -579,6 +700,18 @@ public class MandateLauncher {
 								}
 
 								if (flag) {
+									File toProcessFolderPath = new File(MandateLauncher.getToProcessPath());
+									
+//									if (batchFiles.isEmpty() && toProcessFolderPath.listFiles().length != 0) {
+//										String tailName = getTailName();
+//										String srNo = String.format("%06d", cnt);
+//										toProcessFolderName = "MMS-" + folder.getName() + "-SBIN-SBIN" + tailName + "-"
+//												+ currDate + "-" + srNo + "-ACCEPT";
+//										MandateUtility.createToProcessFolder(toProcessFolderName, folder.getName());
+//										cnt++;
+//									} else {
+//										toProcessFolderName = toProcessFolderPath.listFiles()[0].toString(); 
+//									}
 									if (batchFiles.isEmpty()) {
 										String tailName = getTailName();
 										String srNo = String.format("%06d", cnt);
@@ -586,7 +719,7 @@ public class MandateLauncher {
 												+ currDate + "-" + srNo + "-ACCEPT";
 										MandateUtility.createToProcessFolder(toProcessFolderName, folder.getName());
 										cnt++;
-									}
+									} 
 									Path source = Paths.get(getSrcPath(), folder.getName(), file.getName());
 									Path destDir = Paths.get(getToProcessPath(), folder.getName(), toProcessFolderName);
 									Path dest = destDir.resolve(finalName);
@@ -601,18 +734,17 @@ public class MandateLauncher {
 									}
 									dbupdate = Manager.insertintoMandate_file_logs(encdmap, new Date());
 									if (dbupdate == true) {
-										log.info("Status updated in DB for File : "
-												+ file.getName());
+										log.info("Status updated in DB for File : " + file.getName());
 									} else {
-										log.info("Unable to updated in DB for File : "
-												+ file.getName());
+										log.info("Unable to updated in DB for File : " + file.getName());
 									}
 
 									if (batchFiles.size() == fileProcessLimit) {
 										log.info("Batch ready (" + batchFiles.size()
 												+ " files). Launching mandateMain for : " + toProcessFolderName);
 										ExecutorService service = Executors.newSingleThreadExecutor();
-										Runnable aadeshMain = new MandateMain(destDir.toFile(), folder.getName(),totalnoofRecords,Zone);
+										Runnable aadeshMain = new MandateMain(destDir.toFile(), folder.getName(),
+												totalnoofRecords, Zone);
 										service.execute(aadeshMain);
 										service.shutdown();
 
@@ -630,14 +762,17 @@ public class MandateLauncher {
 										+ " files). Launching MandateMain for final batch");
 
 								ExecutorService service = Executors.newSingleThreadExecutor();
-								Runnable aadeshMain = new MandateMain(finalDir.toFile(), folder.getName(),totalnoofRecords,Zone);
+								Runnable aadeshMain = new MandateMain(finalDir.toFile(), folder.getName(),
+										totalnoofRecords, Zone);
 								service.execute(aadeshMain);
 								service.shutdown();
 								batchFiles.clear();
 							}
-						} catch(IOException ex) {
-							log.error("Unable to access files : " + ex);
-						} catch (Exception e) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+						} catch (SecurityException se) {
+							log.error("Security exception during file batch processing " + se.getMessage());
+						} catch (IOException ex) {
+							log.error("Unable to access files : " + ex.getMessage());
+						} catch (Exception e) {
 							log.info("Error executing the encryption task : " + e.getMessage());
 						}
 					} else {
